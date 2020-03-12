@@ -1,14 +1,27 @@
+import os
 from room import Room
 from player import Player
+from item import Item, Lightsource
 from textwrap import wrap
-# Declare all the rooms
 
+
+def cls():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+
+# Declare all the rooms
 room = {
     'outside':  Room("Outside Cave Entrance",
-                     "North of you, the cave mount beckons"),
+                     "North of you, the cave mount beckons",
+                     [Lightsource('torch', 'A torch to light the darkness')]),
 
-    'foyer':    Room("Foyer", """Dim light filters in from the south. Dusty
-passages run north and east."""),
+    'foyer': Room("Foyer",
+                  """Dim light filters in from the south. Dusty
+passages run north and east.""",
+                  [Item(
+                      'sword',
+                      'A nasty looking blade. It will stop most attackers.')],
+                  True),
 
     'overlook': Room("Grand Overlook", """A steep cliff appears before you,
 falling into the darkness. Ahead to the north, a light flickers in
@@ -22,6 +35,17 @@ chamber! Sadly, it has already been completely emptied by
 earlier adventurers. The only exit is to the south."""),
 }
 
+helpstr = ''' is not a valid command. Valid commands are:
+(n)orth - Go north
+(e)ast - Go east
+(s)outh - Go south
+(w)est - Go west
+(i)tems - See held items
+(g)et [item] - Pick up 'item'
+(d)rop [item] - Drop 'item'
+(q)uit - Quit Game
+
+'''
 
 # Link rooms together
 
@@ -37,76 +61,33 @@ room['treasure'].s_to = room['narrow']
 #
 # Main
 #
-
-# Make a new player object that is currently in the 'outside' room.
+cls()
+print('\n\n============================================')
+print('Welcome to Adventure Game!')
+print('============================================\n')
 name = input('Enter your name:')
+
 player = Player(name, room['outside'])
-# Write a loop that:
-#
-# * Prints the current room name
-# * Prints the current description (the textwrap module might be useful here).
-# * Waits for user input and decides what to do.
-#
-# If the user enters a cardinal direction, attempt to move to the room there.
-# Print an error message if the movement isn't allowed.
-#
-# If the user enters "q", quit the game.
-command = ['']
-while command[0] != 'q' and command[0] != 'quit':
-    if command[0] == 'n' or command[0] == 'north':
-        if player.room.n_to:
-            player.room = player.room.n_to
-        else:
-            print('There is nothing is that direction')
-    elif command[0] == 'e' or command[0] == 'east':
-        if player.room.e_to:
-            player.room = player.room.e_to
-        else:
-            print('There is nothing is that direction')
-    elif command[0] == 's' or command[0] == 'south':
-        if player.room.s_to:
-            player.room = player.room.s_to
-        else:
-            print('There is nothing is that direction')
-    elif command[0] == 'w' or command[0] == 'west':
-        if player.room.w_to:
-            player.room = player.room.w_to
-        else:
-            print('There is nothing is that direction')
-    elif command[0] == 'i' or command[0] == 'items':
-        print('Items:')
-        for item in player.items:
-            print(f'{item.name} - {item.desc}')
-    elif command[0] == 'g' or command[0] == 'get':
-        if len(command) > 1:
-            player.get(command[1])
-        else:
-            print('Incorrect usage. Correct usage is "get [item name]"')
-    elif command[0] == 'd' or command[0] == 'drop':
-        if len(command) > 1:
-            player.drop(command[1])
-        else:
-            print('Incorrect usage. Correct usage is "drop [item name]"')
-    elif command[0] == 'q' or command[0] == 'quit' or command[0] == '':
+
+# COMMAND LISTS
+dir_cmds = set(('n', 'e', 's', 'w', 'north', 'east', 'south', 'west'))
+item_cmds = set(('g', 'd', 'u', 'c', 'get', 'drop', 'use', 'craft'))
+quit_cmds = set(('q', 'quit'))
+cmd = ['']
+while True:
+    cls()
+    print('============================================')
+    if cmd[0] in dir_cmds:
+        player.travel(cmd[0])
+    elif cmd[0] == 'i' or cmd[0] == 'items':
+        player.inventory()
+    elif cmd[0] in item_cmds:
+        player.item_action(cmd)
+    elif cmd[0] in quit_cmds:
+        break
+    elif cmd[0] == '':
         pass
     else:
-        print(f'''\n"{command[0]}" is not a valid command. Valid commands are:
-(n)orth - Go north
-(e)ast - Go east
-(s)outh - Go south
-(w)est - Go west
-(i)tems - See held items
-(g)et [item] - Pick up 'item'
-(d)rop [item] - Drop 'item'
-(q)uit - Quit Game\n''')
-    print()
-    print(player.room.name)
-    desc = wrap(player.room.desc)
-    for line in desc:
-        print(line)
-    if len(player.room.items):
-        print('You can see these items:')
-        for i in range(len(player.room.items)):
-            print(player.room.items[i].name)
-    print()
-    command = input('Enter a command:').split(' ')
+        print(f'\n"{cmd[0]}"{helpstr}')
+    player.room.read(player.lights)
+    cmd = input('==>:').split(' ')
